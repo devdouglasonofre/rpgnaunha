@@ -46,14 +46,12 @@ const mapaMundi = [
 let gFrame = 0
 // Map da Imagem 
 let gImgMap = 0
-// 
-let gScreen
-let gWidth
-let gHeight
 
 // Tela virtual
-gScreen = document.createElement("canvas")
-gContext = gScreen.getContext("2d")
+let gScreen = document.createElement("canvas")
+let gContext = gScreen.getContext("2d")
+let gWidth
+let gHeight
 gScreen.width = WIDTH
 gScreen.height = HEIGHT
 
@@ -77,6 +75,13 @@ if (gWidth / WIDTH < gHeight / HEIGHT) {
   gWidth = gHeight * WIDTH / HEIGHT;
 }
 
+// Jogador
+const CHRHEIGHT = 9
+const CHRWIDTH = 8
+let gImgPlayer
+let gPlayerX = 10
+let gPlayerY = 5
+
 function draw() {
   // Transfere o conteúdo da tela virtual para a tela principal
   game.drawImage(gScreen, 0, 0, gScreen.width, gScreen.height, 0, 0, gWidth, gHeight)
@@ -84,9 +89,13 @@ function draw() {
   // Desenha imagens na tela
   for (let x = 0; x < 32; x++) {
     for (let y = 0; y < 32; y++) {
-      desenharTile(gContext, x * TILESIZE, y * TILESIZE, mapaMundi[x + y * MAP_WIDTH])
+      let px = gPlayerX + x;
+      let py = gPlayerY + y;
+      desenharTile(gContext, x * TILESIZE, y * TILESIZE, mapaMundi[px + py * MAP_WIDTH])
     }
   }
+
+  gContext.drawImage(gImgPlayer, CHRWIDTH, 0, CHRWIDTH, CHRHEIGHT, WIDTH/2, HEIGHT/2, CHRWIDTH, CHRHEIGHT)
 }
 
 function desenharTile(contexto, x, y, idTile) {
@@ -112,6 +121,8 @@ function update() {
 function iniciarJogo() {
   gImgMap = new Image()
   gImgMap.src = "img/map.png"
+  gImgPlayer = new Image()
+  gImgPlayer.src = "img/player.png"
 
   setInterval(() => {
     update()
@@ -119,3 +130,12 @@ function iniciarJogo() {
 }
 
 iniciarJogo()
+
+window.addEventListener('keydown', e => {
+  let tecla = e.keyCode
+  if ( tecla == 37 ) gPlayerX--
+  if ( tecla == 38 ) gPlayerY--
+  if ( tecla == 39 ) gPlayerX++
+  if ( tecla == 40 ) gPlayerY++
+  console.log(gPlayerX, gPlayerY)
+})
