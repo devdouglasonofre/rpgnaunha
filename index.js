@@ -280,7 +280,7 @@ function update() {
       definirMensagem("Você matou o Rei Demônio", "A paz foi restaurada!")
     }
 
-    if (Math.random() * 4 < gEncontros[m]) {
+    if (Math.random() * 8 < gEncontros[m]) {
       gPhase = 1
       gEnemyType = 1
       definirMensagem("Voce encontrou", "um monstro!")
