@@ -75,7 +75,7 @@ canvasGame.height = window.innerHeight - 30
 
 // Faz com que a tela real não suavize os pixels
 const game = canvasGame.getContext("2d")
-game.imageSmoothingEnabled = false
+game.imageSmoothingEnabled = 0
 
 // Pega o tamanho da tela
 gWidth = canvasGame.width
@@ -104,7 +104,7 @@ let gXP = 0
 let gHP = START_HP
 let gMHP = START_HP
 let gLvl = 1
-let gItem = 0
+let gItem = 1
 
 // Movimento X e Y
 let gMoveX = 0
@@ -120,17 +120,77 @@ let gMessage2 = null
 
 // Monstro
 let gImgMonster
+let gImgBoss
 let gEnemyType
-const gEncontros = [0, 0, 0, 1, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0]
+const gEncontros = [0, 0, 0, 1, 0, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0]
+const gNomeMonstros = ["Slime", "Coelho", "Cavaleiro", "Dragão", "Rei Demônio"]
+
+function acao() {
+  gPhase++
+
+  if (gPhase == 3) {
+    const d = getDano(gEnemyType + 2)
+    definirMensagem(gNomeMonstros[gEnemyType] + " atacou!", d + "de dano!")
+    gHP -= d
+    if ( gHP <= 0){
+      gPhase = 7
+    }
+    return
+  }
+
+  if (gCursor == 0) {
+    const d = getDano(gLvl + 1)
+    definirMensagem("Você atacou!", d + " de dano!")
+    //gPhase = 5
+    return
+  }
+
+  if (Math.random() < 0.5) {
+    definirMensagem("Você fugiu.", null)
+    gPhase = 6
+    return
+  }
+
+  definirMensagem("Você tentou fugir,", "Mas o inimigo te impediu!")
+}
+
+function addExp(val) {
+  gXP += val;
+  while (gLvl * (gLvl + 1) * 2 <= gXP) {
+    gLvl++
+    gMHP += 4 + Math.floor(Math.random() * 3)
+  }
+}
+
+function aparecerInimigo(tipo) {
+  gPhase = 1
+  gEnemyType = tipo
+  definirMensagem("Você encontrou um inimigo!", null)
+}
+
+function comandoLuta() {
+  gPhase = 2
+  gCursor = 0
+  definirMensagem("  Atacar", "  Fugir")
+}
+
+function getDano(ataque) {
+  return (Math.floor(ataque * (Math.random() + 1)))
+}
 
 function desenharBatalha(contexto) {
   contexto.fillStyle = "#000000"
   contexto.fillRect(0, 0, WIDTH, HEIGHT)
 
-  let width = gImgMonster.width / 4
-  let height = gImgMonster.height
-
-  contexto.drawImage(gImgMonster, gEnemyType * width, 0, width, height, Math.floor(WIDTH / 2 - width / 2), Math.floor(HEIGHT / 2 - height / 2), width, height)
+  if (gPhase <= 5) {
+    if (gEnemyType == gNomeMonstros.length - 1) {
+      contexto.drawImage(gImgBoss, WIDTH / 2 - gImgBoss.width / 2, HEIGHT / 2 - gImgBoss.height / 2)
+    } else {
+      let width = gImgMonster.width / 4
+      let height = gImgMonster.height
+      contexto.drawImage(gImgMonster, gEnemyType * width, 0, width, height, Math.floor(WIDTH / 2 - width / 2), Math.floor(HEIGHT / 2 - height / 2), width, height)
+    }
+  }
 
   desenharMensagen(contexto)
   desenharStatus(contexto)
@@ -141,7 +201,7 @@ function desenharBatalha(contexto) {
 }
 
 function desenharMapa(contexto) {
-  // Posições em medição de tiles do jogador
+  // Posições do meio baseado no jogador 
   let mx = Math.floor(gPlayerX / TILESIZE)
   let my = Math.floor(gPlayerY / TILESIZE)
 
@@ -247,14 +307,17 @@ function update() {
 
   if (Math.abs(gMoveX) + Math.abs(gMoveY) == SCROLL) {
     if (m == 8 || m == 9) {
+      gHP = gMHP
       definirMensagem("Mate o Rei", "Demônio!")
     }
 
     if (m == 10 || m == 11) {
+      gHP = gMHP
       definirMensagem("Tem uma vila", "a oeste.")
     }
 
     if (m == 12) {
+      gHP = gMHP
       definirMensagem("A chave está", "na caverna.")
     }
 
@@ -277,13 +340,23 @@ function update() {
     }
 
     if (m == 15) {
-      definirMensagem("Você matou o Rei Demônio", "A paz foi restaurada!")
+      aparecerInimigo(gNomeMonstros.length - 1)
     }
 
     if (Math.random() * 8 < gEncontros[m]) {
-      gPhase = 1
-      gEnemyType = 1
-      definirMensagem("Voce encontrou", "um monstro!")
+      let t = Math.abs(gPlayerX / TILESIZE - START_X) +
+        Math.abs(gPlayerY / TILESIZE - START_Y)
+      if (m == 6) {
+        t += 8
+      }
+      if (m == 7) {
+        t += 16
+      }
+
+      t += Math.random() * 8
+      t = Math.floor(t / 16)
+      t = Math.min(t, gNomeMonstros.length - 2)
+      aparecerInimigo(t)
     }
   }
 
@@ -317,6 +390,8 @@ function iniciarJogo() {
   gImgPlayer.src = "img/player.png"
   gImgMonster = new Image()
   gImgMonster.src = "img/monster.png"
+  gImgBoss = new Image()
+  gImgBoss.src = "img/boss.png"
 
   setInterval(() => {
     update()
@@ -334,17 +409,15 @@ window.addEventListener('keydown', e => {
   gKey[tecla] = 1
 
   if (gPhase == 1) {
-    gPhase = 2
-    definirMensagem("  Atacar", "  Fugir")
+    comandoLuta()
     return
   }
 
   if (gPhase == 2) {
     if (tecla == 13 || tecla == 90) {
-      definirMensagem("Você venceu!", null)
-      gPhase = 3
+      acao()
     } else {
-      if (gCursor == 0){
+      if (gCursor == 0) {
         gCursor = 1
       } else {
         gCursor = 0
@@ -354,10 +427,39 @@ window.addEventListener('keydown', e => {
   }
 
   if (gPhase == 3) {
+    acao()
+    return
+  }
+
+  if (gPhase == 4) {
+    comandoLuta()
+    return
+  }
+
+  if (gPhase == 5) {
+    gPhase = 6
+    addExp(gEnemyType + 1)
+    definirMensagem("Você derrotou o", "inimigo!")
+    return
+  }
+
+  if (gPhase == 6) {
+    if (gEnemyType == gNomeMonstros.length - 1 && gCursor == 0) {
+      definirMensagem("Você matou o Rei Demônio", "A paz foi restaurada!")
+      return
+    }
     gPhase = 0
-    gHP -= 5;
-    gXP++
-    gCursor = 0
+  }
+
+  if (gPhase == 7) {
+    gPhase = 8
+    definirMensagem("Você morreu.", null)
+    return
+  }
+
+  if (gPhase == 8) {
+    definirMensagem("Fim de jogo", null)
+    return
   }
 
   gMessage1 = null
